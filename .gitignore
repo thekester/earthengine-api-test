@@ -1,0 +1,44 @@
+# Python related files
+__pycache__/
+*.py[cod]
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Virtual Environment
+env/
+venv/
+ENV/
+
+# MacOS
+.DS_Store
+
+# Logs
+*.log
+
+# Git
+*.lock
+!.gitignore
+
+# Credentials
+credentials.json
+configactionsecret.png
+
+# Ignore Python eggs
+*.egg
+*.egg-info/
+
+# Byte-compiled / optimized / DLL files
+*.pyd
+*.so
+*.dll
+*.o
+*.a
+
+# Ignore compiled code
+build/
+dist/
+*.deb
+*.rpm
+*.tar.gz
+*.whl

@@ -1,0 +1,35 @@
+name: Earth Engine API Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        pip install earthengine-api
+
+    - name: Configure Earth Engine credentials
+      env:
+        EARTHENGINE_CREDENTIALS: ${{ secrets.EARTHENGINE_CREDENTIALS }}
+      run: |
+        mkdir -p ~/.config/earthengine
+        echo "$EARTHENGINE_CREDENTIALS" > ~/.config/earthengine/credentials
+
+    - name: Run test script
+      run: |
+        python test.py
