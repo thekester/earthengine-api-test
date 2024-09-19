@@ -24,7 +24,7 @@ cd earthengine-api-test
 
 Create a file named `test.py` at the root of the project with the following content:
 
-\`\`\`python
+```python
 import ee
 
 # Initialize the Earth Engine API
@@ -40,13 +40,13 @@ print('Mount Everest elevation (m):', elev)
 assert elev > 0, "Error: Elevation should be a positive number."
 
 print("Test passed: The elevation of Mount Everest was retrieved successfully.")
-\`\`\`
+```
 
 ### 3. Configure the GitHub Actions Workflow
 
 In the `.github/workflows/` directory, create a file named `main.yml` with the following content:
 
-\`\`\`yaml
+```yaml
 name: Earth Engine API Test
 
 on:
@@ -82,15 +82,15 @@ jobs:
     - name: Run test script
       run: |
         python test.py
-\`\`\`
+```
 
 ### 4. Obtain Earth Engine Credentials
 
 Generate the credentials file by authenticating locally:
 
-\`\`\`bash
+```bash
 earthengine authenticate
-\`\`\`
+```
 
 - Follow the instructions to authorize access.
 - A credentials file will be created in the `~/.config/earthengine/` directory.
@@ -116,11 +116,11 @@ Here’s an example image showing how to configure the secret in GitHub:
 
 Add the files to version control, commit, and push to GitHub:
 
-\`\`\`bash
+```bash
 git add .
 git commit -m "Configure Earth Engine API test with GitHub Actions"
 git push origin main
-\`\`\`
+```
 
 ### 7. Verify the Workflow Execution
 
@@ -141,14 +141,14 @@ git push origin main
 
 Ensure that your credentials file has the following structure:
 
-\`\`\`json
+```json
 {
   "client_id": "your-client-id.apps.googleusercontent.com",
   "client_secret": "your-client-secret",
   "refresh_token": "your-refresh-token",
   "type": "authorized_user"
 }
-\`\`\`
+```
 
 - The `"type": "authorized_user"` field is mandatory.
 
@@ -168,7 +168,7 @@ Ensure that your credentials file has the following structure:
 
 If everything works correctly, you should see an output similar to the following in the workflow logs:
 
-\`\`\`yaml
+```yaml
 Mount Everest elevation (m): 8848
 Test passed: The elevation of Mount Everest was retrieved successfully.
-\`\`\`
+```
