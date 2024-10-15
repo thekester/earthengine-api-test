@@ -26,11 +26,28 @@ Create a file named `test.py` at the root of the project with the following cont
 
 ```python
 import ee
+import json
+import os
+import google.oauth2.credentials
 
-# Initialize the Earth Engine API
-ee.Initialize()
+# Load credentials from the environment variable
+stored = json.loads(os.getenv("EARTHENGINE_TOKEN"))
+credentials = google.oauth2.credentials.Credentials(
+    None,
+    token_uri="https://oauth2.googleapis.com/token",
+    client_id=stored["client_id"],
+    client_secret=stored["client_secret"],
+    refresh_token=stored["refresh_token"],
+    quota_project_id=stored["project"],
+)
 
-# Test the API by retrieving the elevation of Mount Everest
+# Initialize the Earth Engine API with the credentials
+ee.Initialize(credentials=credentials)
+
+# Print a greeting message from the Earth Engine servers
+print(ee.String("Greetings from the Earth Engine servers!").getInfo())
+
+# Test the API: Print the elevation of Mount Everest
 dem = ee.Image('USGS/SRTMGL1_003')
 xy = ee.Geometry.Point([86.9250, 27.9881])
 elev = dem.sample(xy, 30).first().get('elevation').getInfo()
@@ -93,7 +110,47 @@ earthengine authenticate
 ```
 
 - Follow the instructions to authorize access.
-- A credentials file will be created in the `~/.config/earthengine/` directory.
+- A credentials file will be created as `~/.config/earthengine/credentials`.
+
+```python
+import json
+
+# Function to reformat the JSON
+def reformat_json(input_file, output_file):
+    # Read the JSON from the input file
+    with open(input_file, 'r') as f:
+        data = json.load(f)
+
+    # Write the reformatted JSON to the output file
+    with open(output_file, 'w') as f:
+        json.dump(data, f, separators=(',', ':'), ensure_ascii=False)
+
+# Specify the input and output file names
+input_file = 'input.json'  # Replace with your input file name
+output_file = 'output.json'  # Replace with your output file name
+
+# Call the function to reformat the JSON
+reformat_json(input_file, output_file)
+
+print(f"The JSON has been reformatted and saved to '{output_file}'.")
+```
+
+```json
+{
+    "client_id": "yourclientid.apps.googleusercontent.com",
+    "client_secret": "yourclientsecret",
+    "refresh_token": "yourrefreshtoken",
+    "project": "yourprojectid"
+}
+```
+
+Pleas enote taht you can find the projectid on https://console.cloud.google.com/ it opens for example https://console.cloud.google.com/welcome?pli=1&project=ee-yourproject so here the projectid is ee-yourproject
+
+Take the contnet of the generated output.json
+
+```json
+{"client_id":"yourclientid.apps.googleusercontent.com","client_secret":"yourclientsecret","refresh_token":"yourrefreshtoken","project":"yourprojectid"}
+```
 
 ### 5. Set Up the GitHub Secret
 
@@ -102,10 +159,8 @@ To allow the workflow to access your credentials without exposing them:
 1. Access your repository settings on GitHub.
 2. Click on "Secrets and variables" in the sidebar, then "Actions".
 3. Click on "New repository secret".
-4. Name the secret `EARTHENGINE_CREDENTIALS`.
-5. Open the file `~/.config/earthengine/credentials` with a text editor.
-6. Copy the entire content of the file and paste it into the value field of the secret.
-7. Ensure that the JSON includes the `"type": "authorized_user"` field.
+4. Name the secret `EARTHENGINE_TOKEN`.
+6. Copy the entire content of the output.json and paste it into the value field of the secret.
 8. Save the secret by clicking "Add secret".
 
 Here’s an example image showing how to configure the secret in GitHub:
@@ -137,24 +192,9 @@ git push origin main
 - Always use GitHub Secrets to store sensitive information securely.
 - Do not share your credentials in public forums or repositories.
 
-### Credentials File Structure
-
-Ensure that your credentials file has the following structure:
-
-```json
-{
-  "client_id": "your-client-id.apps.googleusercontent.com",
-  "client_secret": "your-client-secret",
-  "refresh_token": "your-refresh-token",
-  "type": "authorized_user"
-}
-```
-
-- The `"type": "authorized_user"` field is mandatory.
-
 ### Troubleshooting
 
-- **Authentication Errors**: Verify that the `EARTHENGINE_CREDENTIALS` secret is correctly configured and that the JSON is valid.
+- **Authentication Errors**: Verify that the `EARTHENGINE_TOKEN` secret is correctly configured and that the JSON is valid.
 - **Dependency Issues**: Ensure that `earthengine-api` is installed correctly.
 - **Permission Issues**: Check that your Earth Engine account has the necessary permissions.
 
