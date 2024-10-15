@@ -165,7 +165,7 @@ To allow the workflow to access your credentials without exposing them:
 
 Here’s an example image showing how to configure the secret in GitHub:
 
-![Configuring GitHub Secret](configactionsecret.png)
+![Configuring GitHub Secret](EARTHENGINE_TOKEN.png)
 
 ### 6. Commit and Push Changes
 
