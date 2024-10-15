@@ -209,6 +209,7 @@ git push origin main
 If everything works correctly, you should see an output similar to the following in the workflow logs:
 
 ```yaml
-Mount Everest elevation (m): 8848
+Greetings from the Earth Engine servers!
+Mount Everest elevation (m): 8729
 Test passed: The elevation of Mount Everest was retrieved successfully.
 ```
