@@ -15,10 +15,10 @@ This project sets up a GitHub Actions workflow to test the installation and func
 
 Clone the GitHub repository to your local machine:
 
-\`\`\`bash
+```bash
 git clone https://github.com/thekester/earthengine-api-test.git
 cd earthengine-api-test
-\`\`\`
+```
 
 ### 2. Create the Test Script
 
