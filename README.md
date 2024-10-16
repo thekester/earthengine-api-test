@@ -28,21 +28,18 @@ Create a file named `test.py` at the root of the project with the following cont
 import ee
 import json
 import os
-import google.oauth2.credentials
 
 # Load credentials from the environment variable
 stored = json.loads(os.getenv("EARTHENGINE_TOKEN"))
-credentials = google.oauth2.credentials.Credentials(
-    None,
-    token_uri="https://oauth2.googleapis.com/token",
-    client_id=stored["client_id"],
-    client_secret=stored["client_secret"],
-    refresh_token=stored["refresh_token"],
-    quota_project_id=stored["project"],
-)
 
-# Initialize the Earth Engine API with the credentials
-ee.Initialize(credentials=credentials)
+# Write credentials to the appropriate Earth Engine credentials file
+credentials_file = os.path.expanduser("~/.config/earthengine/credentials")
+os.makedirs(os.path.dirname(credentials_file), exist_ok=True)  # Ensure the directory exists
+with open(credentials_file, 'w') as f:
+    json.dump(stored, f)
+
+# Initialize the Earth Engine API
+ee.Initialize()
 
 # Print a greeting message from the Earth Engine servers
 print(ee.String("Greetings from the Earth Engine servers!").getInfo())
@@ -64,41 +61,41 @@ print("Test passed: The elevation of Mount Everest was retrieved successfully.")
 In the `.github/workflows/` directory, create a file named `main.yml` with the following content:
 
 ```yaml
-name: Earth Engine API Test
+name: Test Earth Engine Script
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4  # Use the latest stable version (v4)
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.8'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-    - name: Install dependencies
-      run: |
-        pip install earthengine-api
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install earthengine-api
 
-    - name: Configure Earth Engine credentials
-      env:
-        EARTHENGINE_CREDENTIALS: ${{ secrets.EARTHENGINE_CREDENTIALS }}
-      run: |
-        mkdir -p ~/.config/earthengine
-        echo "$EARTHENGINE_CREDENTIALS" > ~/.config/earthengine/credentials
+      - name: Configure Earth Engine token
+        env:
+          EARTHENGINE_TOKEN: ${{ secrets.EARTHENGINE_TOKEN }}
+        run: |
+          mkdir -p ~/.config/earthengine
+          echo "$EARTHENGINE_TOKEN" > ~/.config/earthengine/credentials
 
-    - name: Run test script
-      run: |
-        python test.py
+      - name: Run Earth Engine Script
+        env:
+          EARTHENGINE_TOKEN: ${{ secrets.EARTHENGINE_TOKEN }}
+        run: |
+          python test.py
 ```
 
 ### 4. Obtain Earth Engine Credentials
