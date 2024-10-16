@@ -1,15 +1,4 @@
 import ee
-import json
-import os
-
-# Load credentials from the environment variable
-stored = json.loads(os.getenv("EARTHENGINE_TOKEN"))
-
-# Write credentials to the appropriate Earth Engine credentials file
-credentials_file = os.path.expanduser("~/.config/earthengine/credentials")
-os.makedirs(os.path.dirname(credentials_file), exist_ok=True)  # Ensure the directory exists
-with open(credentials_file, 'w') as f:
-    json.dump(stored, f)
 
 # Initialize the Earth Engine API
 ee.Initialize()
