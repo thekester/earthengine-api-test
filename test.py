@@ -1,21 +1,18 @@
 import ee
 import json
 import os
-import google.oauth2.credentials
 
 # Load credentials from the environment variable
 stored = json.loads(os.getenv("EARTHENGINE_TOKEN"))
-credentials = google.oauth2.credentials.Credentials(
-    None,
-    token_uri="https://oauth2.googleapis.com/token",
-    client_id=stored["client_id"],
-    client_secret=stored["client_secret"],
-    refresh_token=stored["refresh_token"],
-    quota_project_id=stored["project"],
-)
 
-# Initialize the Earth Engine API with the credentials
-ee.Initialize(credentials=credentials)
+# Write credentials to the appropriate Earth Engine credentials file
+credentials_file = os.path.expanduser("~/.config/earthengine/credentials")
+os.makedirs(os.path.dirname(credentials_file), exist_ok=True)  # Ensure the directory exists
+with open(credentials_file, 'w') as f:
+    json.dump(stored, f)
+
+# Initialize the Earth Engine API
+ee.Initialize()
 
 # Print a greeting message from the Earth Engine servers
 print(ee.String("Greetings from the Earth Engine servers!").getInfo())
