@@ -12,6 +12,8 @@ This repository demonstrates how to authenticate GitHub Actions workflows to Goo
   - [4. Grant Permissions to the Service Account](#4-grant-permissions-to-the-service-account)
   - [5. Grant Access to Google Cloud Resources](#5-grant-access-to-google-cloud-resources)
   - [6. Configure GitHub Actions Workflow](#6-configure-github-actions-workflow)
+  - [7. Verify the Service Account Creation](#7-verify-the-service-account-creation)
+  - [8. Ensure Correct Project Configuration](#8-ensure-correct-project-configuration)
 - [Testing the Configuration](#testing-the-configuration)
 - [Troubleshooting](#troubleshooting)
 - [Security Considerations](#security-considerations)
@@ -47,7 +49,7 @@ The Service Account allows GitHub Actions to interact with Google Cloud resource
 2. **Create a New Service Account**:  
    - Click on **"Create Service Account"**.
    - **Name**: `github-actions-earthengine-api-test`
-   - **ID**: `github-actions-earthengine-api-test`
+   - **ID**: `github-actions-earthengine-api`
    - **Description**: `Service account for GitHub Actions Workload Identity Federation`
    - Click **"Create and Continue"**.
 
@@ -73,19 +75,33 @@ The Workload Identity Pool allows external identities (like GitHub Actions) to a
 2. **Create the Workload Identity Pool**:
 
    ```bash
-   gcloud iam workload-identity-pools create "github-actions-earthengine-api-test-pool" \
+   gcloud iam workload-identity-pools create "gh-actions-ee-api-pool" \
      --project="ee-theophileavenel" \
      --location="global" \
-     --display-name="GitHub Actions EarthEngine API Test Pool"
+     --display-name="GitHub Actions EE API Pool"
    ```
 
-3. **Retrieve the Pool Name**:
+3. **Verify the Workload Identity Pool Creation**:  
+   Run the following command to verify that the pool was created successfully:
 
    ```bash
-   POOL_NAME=$(gcloud iam workload-identity-pools describe "github-actions-earthengine-api-test-pool" \
+   gcloud iam workload-identity-pools list --project="ee-theophileavenel" --location="global"
+   ```
+
+   You should see `gh-actions-ee-api-pool` listed. If not, review any error messages for guidance.
+
+4. **Retrieve the Pool Name**:
+
+   ```bash
+   POOL_NAME=$(gcloud iam workload-identity-pools describe "gh-actions-ee-api-pool" \
      --project="ee-theophileavenel" \
      --location="global" \
      --format="value(name)")
+
+   if [ -z "$POOL_NAME" ]; then
+     echo "Error: Failed to retrieve Workload Identity Pool Name. Please ensure the pool was created successfully."
+     exit 1
+   fi
 
    echo "Workload Identity Pool Name: $POOL_NAME"
    ```
@@ -93,7 +109,7 @@ The Workload Identity Pool allows external identities (like GitHub Actions) to a
    **Expected Output**:
 
    ```bash
-   projects/816258773512/locations/global/workloadIdentityPools/github-actions-earthengine-api-test-pool
+   projects/816258773512/locations/global/workloadIdentityPools/gh-actions-ee-api-pool
    ```
 
 ### 3. Create a Workload Identity Provider
@@ -106,24 +122,31 @@ The Workload Identity Provider configures how identities from GitHub Actions are
 2. **Create the Provider**:
 
    ```bash
-   gcloud iam workload-identity-pools providers create-oidc "github-actions-earthengine-api-test-provider" \
+   gcloud iam workload-identity-pools providers create-oidc "gh-actions-ee-api-provider" \
      --project="ee-theophileavenel" \
      --location="global" \
-     --workload-identity-pool="github-actions-earthengine-api-test-pool" \
-     --display-name="GitHub Actions EarthEngine API Test Provider" \
+     --workload-identity-pool="gh-actions-ee-api-pool" \
+     --display-name="GH Actions EE API Provider" \
      --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository,attribute.repository_owner=assertion.repository_owner" \
      --attribute-condition="assertion.repository_owner == 'thekester'" \
      --issuer-uri="https://token.actions.githubusercontent.com"
    ```
 
+   > **Note**: The display name was shortened to meet the requirement of being 32 characters or less.
+
 3. **Retrieve the Provider Name**:
 
    ```bash
-   PROVIDER_NAME=$(gcloud iam workload-identity-pools providers describe "github-actions-earthengine-api-test-provider" \
+   PROVIDER_NAME=$(gcloud iam workload-identity-pools providers describe "gh-actions-ee-api-provider" \
      --project="ee-theophileavenel" \
      --location="global" \
-     --workload-identity-pool="github-actions-earthengine-api-test-pool" \
+     --workload-identity-pool="gh-actions-ee-api-pool" \
      --format="value(name)")
+
+   if [ -z "$PROVIDER_NAME" ]; then
+     echo "Error: Failed to retrieve Workload Identity Provider Name. Please ensure the provider was created successfully."
+     exit 1
+   fi
 
    echo "Workload Identity Provider Name: $PROVIDER_NAME"
    ```
@@ -131,7 +154,7 @@ The Workload Identity Provider configures how identities from GitHub Actions are
    **Expected Output**:
 
    ```bash
-   projects/816258773512/locations/global/workloadIdentityPools/github-actions-earthengine-api-test-pool/providers/github-actions-earthengine-api-test-provider
+   projects/816258773512/locations/global/workloadIdentityPools/gh-actions-ee-api-pool/providers/gh-actions-ee-api-provider
    ```
 
 ### 4. Grant Permissions to the Service Account
@@ -142,27 +165,131 @@ Allow the Workload Identity Pool to act as the Service Account.
 gcloud iam service-accounts add-iam-policy-binding "github-actions-earthengine-api-test@ee-theophileavenel.iam.gserviceaccount.com" \
   --project="ee-theophileavenel" \
   --role="roles/iam.workloadIdentityUser" \
-  --member="principalSet://iam.googleapis.com/projects/816258773512/locations/global/workloadIdentityPools/github-actions-earthengine-api-test-pool/attribute.repository/thekester/earthengine-api-test"
+  --member="principalSet://iam.googleapis.com/projects/816258773512/locations/global/workloadIdentityPools/gh-actions-ee-api-pool/attribute.repository/thekester/earthengine-api-test"
 ```
 
 ### 5. Grant Access to Google Cloud Resources
 
+### 5.1. Obtain and Use the Secret Token
+
+In order to access your secret securely, you need to obtain a secret token and set it up in your GitHub repository as a secret environment variable. Here are the steps:
+
+1. **Generate the Access Token from Refresh Token**:
+   If you need to obtain an access token to access Google Cloud resources, you can do so by running the following command in your terminal:
+
+   ```bash
+   curl -X POST -d "client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET&refresh_token=YOUR_REFRESH_TOKEN&grant_type=refresh_token" https://oauth2.googleapis.com/token
+   ```
+
+   Replace `YOUR_CLIENT_ID`, `YOUR_CLIENT_SECRET`, and `YOUR_REFRESH_TOKEN` with your actual credentials found in the `~/.config/earthengine/credentials` file.
+
+   The response should contain an access token like this:
+
+   ```json
+   {
+     "access_token": "ya29.a0AfH6SMBmV...ZLRhDdWdr6X-t5AC23",
+     "expires_in": 3600,
+     "token_type": "Bearer"
+   }
+   ```
+
+   Save the `access_token` securely, as you will use it in subsequent steps.
+
+2. **Create a Secret in GitHub**:
+   To avoid exposing the `access_token` in your GitHub Actions YAML file, you should create a GitHub secret:
+
+   - Go to your repository on GitHub.
+   - Click on **Settings** > **Secrets and variables** > **Actions**.
+   - Click on **New repository secret**.
+   - Set the **Name** to `GCP_ACCESS_TOKEN` and paste the `access_token` obtained earlier as the **Value**.
+
+3. **Reference the GitHub Secret in the Workflow File**:
+   Update your GitHub Actions workflow to use the secret without exposing it directly in the YAML file. You can do so by referencing the secret as follows:
+
+   ```yaml
+  name: Deploy to Google Cloud
+
+   on:
+   push:
+      branches:
+         - main
+
+   jobs:
+   deploy:
+      runs-on: ubuntu-latest
+      steps:
+         - name: Checkout
+         uses: actions/checkout@v3
+
+         - name: Authenticate to Google Cloud
+         uses: google-github-actions/auth@v2
+         with:
+            token_format: 'access_token' # or 'id_token' based on your needs
+            workload_identity_provider: 'projects/816258773512/locations/global/workloadIdentityPools/gh-actions-ee-api-pool/providers/gh-actions-ee-api-provider'
+            service_account: 'github-actions-earthengine-api-test@ee-theophileavenel.iam.gserviceaccount.com'
+            project_id: 'ee-theophileavenel'
+
+         - name: Configure gcloud
+         env:
+            GCP_ACCESS_TOKEN: ${{ secrets.GCP_ACCESS_TOKEN }}
+         run: |
+            gcloud config set project "ee-theophileavenel"
+            gcloud auth activate-service-account --access-token=$GCP_ACCESS_TOKEN
+
+         # Add your deployment steps here
+         - name: Deploy Application
+         run: |
+            # Your deployment commands   
+   ```
+
+   > **Note**: This approach securely accesses the secret token without exposing it directly in your workflow YAML file.
+
 For example, to grant access to Secret Manager:
 
-1. **Ensure You Have a Secret**:  
+1. **Ensure Secret Manager API is Enabled**: 
+   If the Secret Manager API is not enabled, you may encounter an error indicating that the API is not available. Run the following command to enable it:
+   
+   ```bash
+   gcloud services enable secretmanager.googleapis.com --project="ee-theophileavenel"
+   ```
+   > **Note**:  and [Secret Manager Pricing](https://cloud.google.com/secret-manager/pricing).
+
+**Possible Error**:
+
+If billing is not enabled for your project, you might encounter the following error:
+
+```
+ERROR: (gcloud.services.enable) FAILED_PRECONDITION: Billing account for project '816258773512' is not found. Billing must be enabled for activation of service(s) 'secretmanager.googleapis.com' to proceed.
+Reason: UREQ_PROJECT_BILLING_NOT_FOUND
+```
+
+
+2. **Ensure You Have a Secret**:  
    - Example Secret Name: `my-secret`
 
-2. **Grant Secret Accessor Role**:
+   **Ensure Secrets Exist in Secret Manager**:
+   - If you see "Listed 0 items" after running `gcloud secrets list`, it means no secrets have been created yet. Use the following command to create a secret:
+
+   ```bash
+   gcloud secrets create my-secret --replication-policy="automatic" --project="ee-theophileavenel"
+   ```
+
+   After creating the secret, try listing again to ensure it's available:
+
+   ```bash
+   gcloud secrets list --project="ee-theophileavenel"
+   ```
+
+3. **Grant Secret Accessor Role**:
 
    ```bash
    gcloud secrets add-iam-policy-binding "my-secret" \
      --project="ee-theophileavenel" \
      --role="roles/secretmanager.secretAccessor" \
-     --member="principalSet://iam.googleapis.com/projects/816258773512/locations/global/workloadIdentityPools/github-actions-earthengine-api-test-pool/attribute.repository/thekester/earthengine-api-test"
+     --member="principalSet://iam.googleapis.com/projects/816258773512/locations/global/workloadIdentityPools/gh-actions-ee-api-pool/attribute.repository/thekester/earthengine-api-test"
    ```
 
    > **Note**: Replace `my-secret` with your actual secret name. Repeat this step for each resource GitHub Actions needs to access.
-
 ### 6. Configure GitHub Actions Workflow
 
 Update your GitHub Actions workflow to authenticate with Google Cloud using the configured Workload Identity Federation.
@@ -173,43 +300,96 @@ Update your GitHub Actions workflow to authenticate with Google Cloud using the 
 2. **Add the Authentication Step**:
 
    ```yaml
-   name: Deploy to Google Cloud
+  # .github/workflows/deploy-and-test.yml
+
+   name: Deploy to Google Cloud and Test Earth Engine Script
 
    on:
-     push:
-       branches:
-         - main
+   push:
+      branches:
+         - main  # Triggers the workflow on pushes to the main branch
 
    jobs:
-     deploy:
-       runs-on: ubuntu-latest
-       steps:
-         - name: Checkout
-           uses: actions/checkout@v3
+   deploy-and-test:
+      runs-on: ubuntu-latest
 
+      steps:
+         # 1. Checkout the repository
+         - name: Checkout repository
+         uses: actions/checkout@v4
+
+         # 2. Authenticate to Google Cloud using Workload Identity Federation
          - name: Authenticate to Google Cloud
-           uses: google-github-actions/auth@v2
-           with:
-             token_format: 'access_token' # or 'id_token' based on your needs
-             workload_identity_provider: 'projects/816258773512/locations/global/workloadIdentityPools/github-actions-earthengine-api-test-pool/providers/github-actions-earthengine-api-test-provider'
-             service_account: 'github-actions-earthengine-api-test@ee-theophileavenel.iam.gserviceaccount.com'
-             project_id: 'ee-theophileavenel'
+         uses: google-github-actions/auth@v2
+         with:
+            token_format: 'access_token'
+            workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+            service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+            project_id: ${{ secrets.GCP_PROJECT_ID }}
 
+         # 3. Configure gcloud
          - name: Configure gcloud
-           run: |
-             gcloud config set project "ee-theophileavenel"
-             gcloud auth configure-docker
+         run: |
+            gcloud config set project "${{ secrets.GCP_PROJECT_ID }}"
 
-         # Add your deployment steps here
-         - name: Deploy Application
-           run: |
-             # Your deployment commands
+         # 4. Set up Python
+         - name: Set up Python
+         uses: actions/setup-python@v5
+         with:
+            python-version: '3.11'  # Specify the Python version you need
+
+         # 5. Install dependencies
+         - name: Install dependencies
+         run: |
+            python -m pip install --upgrade pip
+            pip install earthengine-api
+
+         # 6. Run Earth Engine Script
+         - name: Run Earth Engine Script
+         run: |
+            python test.py
+
+         # 7. Deploy Application to App Engine
+         - name: Deploy Application to App Engine
+         run: |
+            gcloud app deploy --quiet
+
    ```
 
    > **Ensure**:
    > - `workload_identity_provider` matches the full name of your Workload Identity Provider.
    > - `service_account` is the email of the Service Account created earlier.
    > - `project_id` is set to your Google Cloud Project ID.
+
+### 7. Verify the Service Account Creation
+
+Run the following command to ensure the service account was created successfully:
+
+```bash
+gcloud iam service-accounts list --project=ee-theophileavenel
+```
+
+You should see an entry for `github-actions-earthengine-api-test@ee-theophileavenel.iam.gserviceaccount.com`.
+
+### 8. Ensure Correct Project Configuration
+
+Before executing any `gcloud` commands, verify that your `gcloud` is set to the correct project:
+
+```bash
+gcloud config get-value project
+```
+
+**Expected Output**:
+
+```
+ee-theophileavenel
+```
+
+If it's not set to `ee-theophileavenel`, set it using:
+
+```bash
+gcloud config set project ee-theophileavenel
+```
 
 ## Testing the Configuration
 
