@@ -212,9 +212,18 @@ gcloud iam service-accounts create ${SERVICE_ACCOUNT_NAME} \
 ```
 
 
-### Step 6: Grant the role to allow creating access tokens (impersonation role)
+### Step 6: Assign Roles to the Service Account
 ```bash
-# Grant the role to allow creating access tokens (impersonation role)
+# Grant the necessary IAM roles to the Service Account to allow it to create access tokens and view project resources.
+
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/viewer"
+
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/serviceusage.serviceUsageAdmin"
+
 gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
   --project="${PROJECT_ID}" \
   --role="roles/iam.serviceAccountTokenCreator" \
@@ -251,25 +260,30 @@ gcloud iam service-accounts get-iam-policy  "${SERVICE_ACCOUNT_EMAIL}" --project
 
 ### Step 8: Enable cloudresourcemanager
 
+# Ensure that the Cloud Resource Manager API is enabled for your project.
+
 ```bash
 gcloud services enable cloudresourcemanager.googleapis.com --project="${PROJECT_ID}"
 ```
 
 
-### Step 6: Assign Roles to the Service Account
-Grant the necessary roles to the newly created service account to allow it to access resources such as Secret Manager.
+
+
+### Step 9: Verify IAM Policy Bindings
+
+# Confirm that the IAM roles have been correctly assigned to the Service Account and the Workload Identity Pool member.
 
 ```bash
-# Replace ${PROJECT_ID} and ${SERVICE_ACCOUNT_NAME} with your values.
-SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
-
-# Note: Make sure to source the saved variables before running this command if needed.
-source saved_variables.env
+gcloud projects get-iam-policy "${PROJECT_ID}" --format=json
 ```
 
+```
+# Verify Service Account IAM Policy
 
+gcloud iam service-accounts get-iam-policy "${SERVICE_ACCOUNT_EMAIL}" --project="${PROJECT_ID}" --format=json
+```
 
-### Step 7: Configure GitHub Actions to Authenticate
+### Step 10: Configure GitHub Actions to Authenticate
 
 Use the extracted value as the `workload_identity_provider` value in your GitHub Actions YAML.
 
