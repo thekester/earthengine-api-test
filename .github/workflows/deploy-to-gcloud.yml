@@ -1,13 +1,14 @@
-# .github/workflows/deploy-and-test.yml
-
 name: Deploy to Google Cloud and Test Earth Engine Script
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - '**'  # To execute in all branchs
+      - '**'  # To execute on all branches
 
+permissions:
+  id-token: write       # Allows generating OIDC tokens
+  contents: read        # Default read access to repository contents
 
 jobs:
   deploy-and-test:
