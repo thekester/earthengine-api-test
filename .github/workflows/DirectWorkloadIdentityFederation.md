@@ -9,6 +9,17 @@
 
 To create a new Google Cloud project and obtain a `PROJECT_ID`, use the following command:
 
+### Link a Billing Account to Your Project
+After creating the project, you need to link a billing account to it. Use the following command:
+
+```bash
+# Replace ${PROJECT_ID} and ${BILLING_ACCOUNT_ID} with your values.
+gcloud beta billing projects link ${PROJECT_ID} --billing-account=${BILLING_ACCOUNT_ID}
+```
+
+This command will link your project to the specified billing account, enabling services like Secret Manager.
+
+
 ```bash
 # Replace "PROJECT_NAME" with your desired project name.
 
@@ -169,35 +180,39 @@ jobs:
 
       # 2. Authenticate to Google Cloud using Workload Identity Federation
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v1
         with:
           token_format: 'access_token'
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
 
-      # 3. Silent Authentication Verification
+      # 3. Configure gcloud
+      - name: Configure gcloud
+        run: |
+          gcloud config set project "${{ secrets.GCP_PROJECT_ID }}"
+          gcloud config set compute/region "${{ secrets.GCP_REGION }}"  # Optional: set region if needed
+
+      # 4. Silent Authentication Verification
       - name: Silent Authentication Verification
         run: |
           # Confirm authentication is successful by listing gcloud accounts
           gcloud auth list --filter=status:ACTIVE --format="value(account)" || exit 1
           
           # Check if project ID is set correctly
-          [[ "$(gcloud config get-value project)" == "${{ secrets.GCP_PROJECT_ID }}" ]] || exit 1
+          if [[ "$(gcloud config get-value project)" != "${{ secrets.GCP_PROJECT_ID }}" ]]; then
+            echo "Project ID mismatch"
+            exit 1
+          fi
           
           # Confirm that gcloud can retrieve project IAM policies, which requires proper permissions
           gcloud projects get-iam-policy "${{ secrets.GCP_PROJECT_ID }}" --format="value(bindings)" > /dev/null || exit 1
-
-      # 4. Configure gcloud project
-      - name: Configure gcloud
-        run: |
-          gcloud config set project "${{ secrets.GCP_PROJECT_ID }}"
 
       # 5. Create a Secret in Secret Manager
       - name: Create a Secret in Secret Manager
         run: |
           gcloud secrets create "my-secret" \
             --project="${{ secrets.GCP_PROJECT_ID }}" \
-            --replication-policy="automatic"
+            --replication-policy="automatic" || echo "Secret already exists"
 
       # 6. Add a Version to the Secret
       - name: Add a Version to the Secret
@@ -212,7 +227,7 @@ jobs:
           gcloud secrets add-iam-policy-binding "my-secret" \
             --project="${{ secrets.GCP_PROJECT_ID }}" \
             --role="roles/secretmanager.secretAccessor" \
-            --member="principalSet://iam.googleapis.com/${{ secrets.WORKLOAD_IDENTITY_POOL_ID }}/attribute.repository/\$\{\{ env.REPOSITORY \}\}"
+            --member="principalSet://iam.googleapis.com/${{ secrets.WORKLOAD_IDENTITY_POOL_ID }}/attribute.repository/${{ github.repository }}"
 
       # 8. Set up Python
       - name: Set up Python
@@ -235,6 +250,7 @@ jobs:
       - name: Deploy Application to App Engine
         run: |
           gcloud app deploy --quiet
+
 ```
 
 **Note**: The `project_id` input is optional but may be required by some downstream systems such as `gcloud` CLI.
