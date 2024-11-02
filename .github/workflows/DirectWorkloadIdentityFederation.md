@@ -232,6 +232,23 @@ gcloud secrets add-iam-policy-binding "my-secret" \
   --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${REPO}"
 ```
 
+To resolve the PERMISSION_DENIED error for iam.serviceAccounts.getAccessToken, you need to grant the roles/iam.serviceAccountTokenCreator role to the Workload Identity Pool Member for the specific service account.
+
+```bash
+
+  gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
+  --project="${PROJECT_ID}" \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${REPO}"
+```
+
+To verify it's done
+
+
+```bash
+gcloud iam service-accounts get-iam-policy  "${SERVICE_ACCOUNT_EMAIL}" --project="${PROJECT_ID}" --format=json
+```
+
 ### Step 8: Enable cloudresourcemanager
 
 ```bash
