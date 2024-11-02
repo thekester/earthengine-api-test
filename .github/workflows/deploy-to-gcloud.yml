@@ -4,6 +4,9 @@ name: Deploy to Google Cloud and Test Earth Engine Script
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - '**'  # To execute in all branchs
 
 
 jobs:
