@@ -266,9 +266,6 @@ gcloud iam service-accounts get-iam-policy  "${SERVICE_ACCOUNT_EMAIL}" --project
 gcloud services enable cloudresourcemanager.googleapis.com --project="${PROJECT_ID}"
 ```
 
-
-
-
 ### Step 9: Verify IAM Policy Bindings
 
 # Confirm that the IAM roles have been correctly assigned to the Service Account and the Workload Identity Pool member.
@@ -282,6 +279,41 @@ gcloud projects get-iam-policy "${PROJECT_ID}" --format=json
 
 gcloud iam service-accounts get-iam-policy "${SERVICE_ACCOUNT_EMAIL}" --project="${PROJECT_ID}" --format=json
 ```
+
+# Assign roles/secretmanager.secretAccessor to the Workload Identity Pool Member
+```bash
+
+gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
+  --project="${PROJECT_ID}" \
+  --role="roles/secretmanager.secretAccessor" \
+  --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${REPO}"
+```
+
+# Assign roles/viewer to the Service Account
+```bash
+
+gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
+  --project="${PROJECT_ID}" \
+  --role="roles/viewer" \
+  --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${REPO}"
+```
+
+# Assign roles/serviceusage.serviceUsageAdmin to the Service Account
+```bash
+gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
+  --project="${PROJECT_ID}" \
+  --role="roles/serviceusage.serviceUsageAdmin" \
+  --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${REPO}"
+```
+
+# Assign roles/iam.serviceAccountTokenCreator to the Workload Identity Pool Member
+```bash
+gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
+  --project="${PROJECT_ID}" \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${REPO}"
+```
+
 
 ### Step 10: Configure GitHub Actions to Authenticate
 
