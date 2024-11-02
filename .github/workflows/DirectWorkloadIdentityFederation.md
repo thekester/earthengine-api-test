@@ -62,6 +62,42 @@ https://github.com/username/earthengine-api-test
 
 Here, `username` is your GitHub username, so your `GITHUB_ORG` value would be `username`.
 
+## Enabling IAM Service Account Credentials API
+
+If you encounter the following error:
+
+```
+"message": "IAM Service Account Credentials API has not been used in project ${PROJECT_ID} before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/iamcredentials.googleapis.com/overview?project=${PROJECT_ID} then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.",
+"status": "PERMISSION_DENIED",
+"details": [
+  {
+    "@type": "type.googleapis.com/google.rpc.Help",
+    "links": [
+      {
+        "description": "Google developers console API activation",
+        "url": "https://console.developers.google.com/apis/api/iamcredentials.googleapis.com/overview?project=${PROJECT_ID}"
+      }
+    ]
+  },
+  {
+    "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+    "reason": "SERVICE_DISABLED",
+    "domain": "googleapis.com",
+    "metadata": {
+      "service": "iamcredentials.googleapis.com",
+      "consumer": "projects/${PROJECT_ID}"
+    }
+  }
+```
+
+You need to enable the IAM Service Account Credentials API for your project.
+
+1. Visit the following link:
+   [Enable IAM Service Account Credentials API](https://console.cloud.google.com/apis/library/iamcredentials.googleapis.com?project=gitactions-idfederation)
+2. Click on the **Enable** button to activate the API.
+
+Wait a few minutes for the activation to propagate, then retry your GitHub Actions workflow.
+
 ## Step-by-Step Guide
 
 ### Step 1: Create a Workload Identity Pool
