@@ -100,6 +100,40 @@ Wait a few minutes for the activation to propagate, then retry your GitHub Actio
 
 ## Step-by-Step Guide
 
+### Script to Save Variables for Future Use
+You may want to save various important environment variables in a script file to reuse them easily in future commands. Here is an example script to save these variables:
+
+```bash
+#!/bin/bash
+
+# Set the project ID
+PROJECT_ID="your-project-id"
+
+# Set the Service Account name and email
+SERVICE_ACCOUNT_NAME="github-actions-service-account"
+SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+# Set the Workload Identity Pool ID
+WORKLOAD_IDENTITY_POOL="github"
+
+# Save variables to a file
+cat <<EOF > saved_variables.env
+export PROJECT_ID=${PROJECT_ID}
+export SERVICE_ACCOUNT_NAME=${SERVICE_ACCOUNT_NAME}
+export SERVICE_ACCOUNT_EMAIL=${SERVICE_ACCOUNT_EMAIL}
+export WORKLOAD_IDENTITY_POOL=${WORKLOAD_IDENTITY_POOL}
+EOF
+
+echo "Variables saved to saved_variables.env"
+```
+
+This script creates a file named `saved_variables.env` which contains the necessary environment variables. You can source this file when needed:
+
+```bash
+source saved_variables.env
+```
+
+
 ### Step 1: Create a Workload Identity Pool
 Create a Workload Identity Pool to enable GitHub Actions to authenticate to Google Cloud.
 
@@ -183,9 +217,8 @@ Grant the necessary roles to the newly created service account to allow it to ac
 # Replace ${PROJECT_ID} and ${SERVICE_ACCOUNT_NAME} with your values.
 SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
-  --role="roles/secretmanager.secretAccessor"
+# Note: Make sure to source the saved variables before running this command if needed.
+source saved_variables.env
 ```
 
 ### Step 7: Configure GitHub Actions to Authenticate
