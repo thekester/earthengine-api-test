@@ -232,6 +232,12 @@ gcloud secrets add-iam-policy-binding "my-secret" \
   --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${REPO}"
 ```
 
+### Step 8: Enable cloudresourcemanager
+
+```bash
+gcloud services enable cloudresourcemanager.googleapis.com --project="${PROJECT_ID}"
+```
+
 
 ### Step 6: Assign Roles to the Service Account
 Grant the necessary roles to the newly created service account to allow it to access resources such as Secret Manager.
@@ -243,6 +249,8 @@ SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount
 # Note: Make sure to source the saved variables before running this command if needed.
 source saved_variables.env
 ```
+
+
 
 ### Step 7: Configure GitHub Actions to Authenticate
 
