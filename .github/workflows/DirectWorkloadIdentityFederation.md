@@ -98,6 +98,7 @@ You need to enable the IAM Service Account Credentials API for your project.
 
 Wait a few minutes for the activation to propagate, then retry your GitHub Actions workflow.
 
+
 ## Step-by-Step Guide
 
 ### Script to Save Variables for Future Use
@@ -209,6 +210,28 @@ gcloud iam service-accounts create ${SERVICE_ACCOUNT_NAME} \
   --display-name="GitHub Actions Service Account" \
   --project=${PROJECT_ID}
 ```
+
+
+### Step 6: Grant the role to allow creating access tokens (impersonation role)
+```bash
+# Grant the role to allow creating access tokens (impersonation role)
+gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
+  --project="${PROJECT_ID}" \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${REPO}"
+
+```
+
+### Step 7: Grant secret access
+
+```bash
+# Grant secret access
+gcloud secrets add-iam-policy-binding "my-secret" \
+  --project="${PROJECT_ID}" \
+  --role="roles/secretmanager.secretAccessor" \
+  --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${REPO}"
+```
+
 
 ### Step 6: Assign Roles to the Service Account
 Grant the necessary roles to the newly created service account to allow it to access resources such as Secret Manager.
