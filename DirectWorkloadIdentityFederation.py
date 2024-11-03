@@ -1,8 +1,7 @@
 import ee
-from google.oauth2 import service_account
 
-# Optional: Print the credentials being used for debugging
-credentials, project = ee.data.get_persistent_credentials()
+ee.Authenticate()
+
 
 # Initialize the Earth Engine API with ADC
 ee.Initialize()
