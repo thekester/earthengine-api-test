@@ -8,11 +8,8 @@ credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 if not credentials_path:
     raise EnvironmentError("The environment variable GOOGLE_APPLICATION_CREDENTIALS is not set.")
 
-# Create the credentials object
-credentials = service_account.Credentials.from_service_account_file(credentials_path)
-
-# Initialize Earth Engine with the credentials
-ee.Initialize(credentials)
+# Initialize Earth Engine with ADC (no need to manually load credentials)
+ee.Initialize()
 
 # Example script
 print(ee.String("Greetings from the Earth Engine servers!").getInfo())
