@@ -62,6 +62,8 @@ jobs:
             --project="${{ secrets.GCP_PROJECT_ID }}" \
             --role="roles/secretmanager.secretAccessor" \
             --member="principalSet://iam.googleapis.com/${{ secrets.WORKLOAD_IDENTITY_POOL_ID }}/attribute.repository/${{ github.repository }}"
+          
+          gcloud --quiet
 
       # 7. Set up Python
       - name: Set up Python

@@ -1,7 +1,7 @@
 import ee
 
+print("Silent authentication")
 ee.Authenticate(quiet=True)
-
 
 # Initialize the Earth Engine API with ADC
 ee.Initialize()
