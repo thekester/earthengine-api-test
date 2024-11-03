@@ -75,17 +75,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install earthengine-api
 
-      # 9. Silent gcloud authentication
-      - name: Silent gcloud authentication
-        run: |
-          gcloud auth application-default login --quiet
-
-      # 10. Run Earth Engine Script
+      # 9. Run Earth Engine Script
       - name: Run Earth Engine Script
         run: |
           python DirectWorkloadIdentityFederation.py
 
-      # 11. Deploy Application to App Engine
+      # 10. Deploy Application to App Engine
       - name: Deploy Application to App Engine
         run: |
           gcloud app deploy --quiet
