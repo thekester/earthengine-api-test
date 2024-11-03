@@ -1,6 +1,6 @@
 import ee
 
-ee.Authenticate()
+ee.Authenticate(quiet=True)
 
 
 # Initialize the Earth Engine API with ADC
