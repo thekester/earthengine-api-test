@@ -55,14 +55,7 @@ jobs:
             --project="${{ secrets.GCP_PROJECT_ID }}" \
             --replication-policy="automatic" || echo "Secret already exists"
 
-      # 6. Add a Version to the Secret
-      - name: Add a Version to the Secret
-        run: |
-          echo -n "your-secret-value" | gcloud secrets versions add "my-secret" \
-            --project="${{ secrets.GCP_PROJECT_ID }}" \
-            --data-file=-
-
-      # 7. Grant Permissions to the Workload Identity Pool
+      # 6. Grant Permissions to the Workload Identity Pool
       - name: Grant Permissions to the Workload Identity Pool
         run: |
           gcloud secrets add-iam-policy-binding "my-secret" \
@@ -70,24 +63,24 @@ jobs:
             --role="roles/secretmanager.secretAccessor" \
             --member="principalSet://iam.googleapis.com/${{ secrets.WORKLOAD_IDENTITY_POOL_ID }}/attribute.repository/${{ github.repository }}"
 
-      # 8. Set up Python
+      # 7. Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'  # Specify the Python version you need
 
-      # 9. Install dependencies
+      # 8. Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install earthengine-api
 
-      # 10. Run Earth Engine Script
+      # 9. Run Earth Engine Script
       - name: Run Earth Engine Script
         run: |
           python test.py
 
-      # 11. Deploy Application to App Engine
+      # 10. Deploy Application to App Engine
       - name: Deploy Application to App Engine
         run: |
           gcloud app deploy --quiet
