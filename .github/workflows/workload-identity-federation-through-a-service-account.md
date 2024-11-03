@@ -1,4 +1,4 @@
-# Authenticate to Google Cloud from GitHub Actions with Direct Workload Identity Federation
+# GitHub Actions Authentication with Google Cloud using Workload Identity Federation through a Service Account
 
 ## Prerequisites
 
@@ -17,7 +17,15 @@ After creating the project, you need to link a billing account to it. Use the fo
 gcloud beta billing projects link ${PROJECT_ID} --billing-account=${BILLING_ACCOUNT_ID}
 ```
 
-This command will link your project to the specified billing account, enabling services like Secret Manager.
+You'll need it when you'll need to ensure Secret Manager API is Enabled
+If billing is not enabled for your project, you might encounter the following error:
+
+```bash
+ERROR: (gcloud.services.enable) FAILED_PRECONDITION: Billing account for project 'projectnumber' is not found. Billing must be enabled for activation of service(s) 'secretmanager.googleapis.com' to proceed.
+Reason: UREQ_PROJECT_BILLING_NOT_FOUND
+```
+
+> **Note**: and [Secret Manager Pricing](https://cloud.google.com/secret-manager/pricing).
 
 
 ```bash
@@ -97,7 +105,6 @@ You need to enable the IAM Service Account Credentials API for your project.
 2. Click on the **Enable** button to activate the API.
 
 Wait a few minutes for the activation to propagate, then retry your GitHub Actions workflow.
-
 
 ## Step-by-Step Guide
 
@@ -211,6 +218,11 @@ gcloud iam service-accounts create ${SERVICE_ACCOUNT_NAME} \
   --project=${PROJECT_ID}
 ```
 
+Run the following command to ensure the service account was created successfully:
+
+```bash
+gcloud iam service-accounts list --project=${PROJECT_ID}
+```
 
 ### Step 6: Assign Roles to the Service Account
 ```bash
@@ -245,7 +257,7 @@ To resolve the PERMISSION_DENIED error for iam.serviceAccounts.getAccessToken, y
 
 ```bash
 
-  gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
+gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
   --project="${PROJECT_ID}" \
   --role="roles/iam.serviceAccountTokenCreator" \
   --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${REPO}"
@@ -257,6 +269,8 @@ To verify it's done
 ```bash
 gcloud iam service-accounts get-iam-policy  "${SERVICE_ACCOUNT_EMAIL}" --project="${PROJECT_ID}" --format=json
 ```
+
+To verify and manage the roles with a GUI you can go on https://console.cloud.google.com/iam-admin/iam?project=yourprojectid
 
 ### Step 8: Enable cloudresourcemanager
 
@@ -274,7 +288,7 @@ gcloud services enable cloudresourcemanager.googleapis.com --project="${PROJECT_
 gcloud projects get-iam-policy "${PROJECT_ID}" --format=json
 ```
 
-```
+```bash
 # Verify Service Account IAM Policy
 
 gcloud iam service-accounts get-iam-policy "${SERVICE_ACCOUNT_EMAIL}" --project="${PROJECT_ID}" --format=json
@@ -316,9 +330,7 @@ gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
 
 Run echo -n "your-secret-value" | gcloud secrets versions add "my-secret" \
 
-ERROR: (gcloud.secrets.versions.add) PERMISSION_DENIED: Permission 'secretmanager.versions.add' denied for resource 'projects/***/secrets/my-secret' (or it may not exist). This command is authenticated as *** using the credentials in /home/runner/work/earthengine-api-test/earthengine-api-test/gha-creds-398b237fe6a97e54.json, specified by the [auth/credential_file_override] property.
-
-I erase that part
+To have all the rights to do secret management to the service account you need to assign the secretmanager.admin role
 
 ```bash
 gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
@@ -390,42 +402,36 @@ jobs:
             --project="${{ secrets.GCP_PROJECT_ID }}" \
             --replication-policy="automatic" || echo "Secret already exists"
 
-      # 6. Add a Version to the Secret
-      - name: Add a Version to the Secret
-        run: |
-          echo -n "your-secret-value" | gcloud secrets versions add "my-secret" \
-            --project="${{ secrets.GCP_PROJECT_ID }}" \
-            --data-file=-
-
-      # 7. Grant Permissions to the Workload Identity Pool
+      # 6. Grant Permissions to the Workload Identity Pool
       - name: Grant Permissions to the Workload Identity Pool
         run: |
           gcloud secrets add-iam-policy-binding "my-secret" \
             --project="${{ secrets.GCP_PROJECT_ID }}" \
             --role="roles/secretmanager.secretAccessor" \
             --member="principalSet://iam.googleapis.com/${{ secrets.WORKLOAD_IDENTITY_POOL_ID }}/attribute.repository/${{ github.repository }}"
-
-      # 8. Set up Python
+          
+      # 7. Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'  # Specify the Python version you need
 
-      # 9. Install dependencies
+      # 8. Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install earthengine-api
 
-      # 10. Run Earth Engine Script
+      # 9. Run Earth Engine Script
       - name: Run Earth Engine Script
         run: |
-          python test.py
+          python DirectWorkloadIdentityFederation.py
 
-      # 11. Deploy Application to App Engine
+      # 10. Deploy Application to App Engine
       - name: Deploy Application to App Engine
         run: |
           gcloud app deploy --quiet
+
 
 ```
 
