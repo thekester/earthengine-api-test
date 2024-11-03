@@ -318,6 +318,15 @@ Run echo -n "your-secret-value" | gcloud secrets versions add "my-secret" \
 
 ERROR: (gcloud.secrets.versions.add) PERMISSION_DENIED: Permission 'secretmanager.versions.add' denied for resource 'projects/***/secrets/my-secret' (or it may not exist). This command is authenticated as *** using the credentials in /home/runner/work/earthengine-api-test/earthengine-api-test/gha-creds-398b237fe6a97e54.json, specified by the [auth/credential_file_override] property.
 
+I erase that part
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT_EMAIL}" \
+  --project="${PROJECT_ID}" \
+  --role="roles/secretmanager.admin" \
+  --member="principalSet://iam.googleapis.com/${WORKLOAD_IDENTITY_POOL_ID}/attribute.repository/${REPO}"
+```
+
 
 ### Step 10: Configure GitHub Actions to Authenticate
 
