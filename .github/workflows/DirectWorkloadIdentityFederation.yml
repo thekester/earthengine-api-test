@@ -78,7 +78,7 @@ jobs:
       # 9. Run Earth Engine Script
       - name: Run Earth Engine Script
         run: |
-          python test.py
+          python DirectWorkloadIdentityFederation.py
 
       # 10. Deploy Application to App Engine
       - name: Deploy Application to App Engine
